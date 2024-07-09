@@ -1,0 +1,142 @@
+import time
+from pynput import keyboard
+from functions import task_di_constructor as task_construct
+
+
+
+# Global variables
+current_task = None
+start_time = None
+task_times = {}
+stop_listener = False
+task_name =''
+task_array = []
+task_json_dic = {}
+
+#######################
+### This is a moduel on its on
+from datetime import date
+
+import os, json
+file_path = '/home/larsitsmeash/Ash-lib/dev-projects/Turi/json_dataset/task_tracking_database.json'
+
+with open(file_path) as json_file:
+    json_data = json.load(json_file)
+
+
+
+def print_jsondata(input_data):
+
+    data_json = json.dumps(input_data, indent=4)
+    print(data_json)
+
+# print_jsondata(json_data)
+# print_jsondata(json_data['date'])
+def update_tasklist():
+    data_tasklist = json_data['date']
+    today_formated_date = date.today() 
+
+    data_tasklist[str(today_formated_date)] = {'tasks': task_array}
+    print_jsondata(json_data)
+# json_data[]
+
+# task_json_dic = {
+#     "name": "null",
+#     "start_time": "null",
+#     "duration": "null",
+#     "end_time": "null",
+#     "tags": [
+#         "null",
+#         "null"
+#     ],
+#     "achievements": "null"
+# }
+
+
+#######################
+ 
+
+
+def format_time(seconds):
+    return time.strftime('%H:%M:%S', time.gmtime(seconds))
+
+
+
+
+def on_press(key):
+    global current_task, start_time, stop_listener, task_name
+
+    if key == keyboard.Key.esc or (hasattr(key, 'char') and key.char == 'q'):
+        stop_listener = True
+        return False  # Stop listener
+
+    try:
+        if key.char == 'n':  # New task
+            if current_task:
+                stop_task()
+            task_name = input("\n Enter the task name: ")
+            start_task(task_name)
+        elif key.char == 's':  # Stop current task
+            if current_task:
+                stop_task()
+
+            else:
+                print("\nNo task is currently being tracked.")
+    except AttributeError:
+        pass  # Special keys (e.g., function keys) are ignored
+
+
+
+
+def start_task(input_task_name):
+    global current_task, start_time
+    current_task = input_task_name
+    start_time = time.time()
+    print(f"Started tracking task: {input_task_name}")
+
+
+
+
+def stop_task():
+    global current_task, start_time, task_name, task_json_dic
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    task_times[current_task] = task_times.get(current_task, 0) + elapsed_time
+    print(f"Stopped tracking task: {current_task}. Time spent: {format_time(elapsed_time)}")
+    current_task = None
+    start_time = None
+
+    task_json_dic = task_construct.create_task_dict(task_name, format_time(start_time), format_time(elapsed_time), format_time(end_time), ["null", "null"], 'null', 'null')
+    task_array.append(task_json_dic)
+    
+
+
+
+
+# def display_summary():
+#     print("\nTask Summary:")
+#     for task, time_spent in task_times.items():
+#         print(f"Task: {task}, Time Spent: {format_time(time_spent)}")
+
+
+
+
+def main():
+    print("Press 'n' to start a new task, 's' to stop the current task, and 'Esc' or 'q' to quit.")
+    with keyboard.Listener(on_press=on_press) as listener:
+        while not stop_listener:
+            if current_task:
+                elapsed_time = time.time() - start_time
+                print(f"\rCurrent task: {current_task}, Time elapsed: {format_time(elapsed_time)}", end="", flush=True)
+            time.sleep(1)
+
+    # display_summary()
+    print('Battle Control Terminated :d')
+    # print(task_array)
+    ### updating the json data set
+    update_tasklist()
+    # print('Program terminated :d')
+
+if __name__ == "__main__":
+    main()
+    # pass
